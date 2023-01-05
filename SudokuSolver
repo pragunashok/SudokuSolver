@@ -1,0 +1,273 @@
+import java.util.*;
+import java.lang.*;
+import java.awt.*;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.awt.FlowLayout;
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
+import java.util.Random;
+public class SudokuSolver 
+{
+    public static int GridSize=9;
+    public static int boxsize = (int)(Math.sqrt(GridSize));
+    public static int pointerx = 0, pointery = 0;
+    public static int[][] grid = emptyGrid(9);
+    public static void clrscr()// Function to clear screen
+    {
+        System.out.print('\u000C');
+    }
+    public static int[][] emptyGrid(int n){ // Returns a 2d array of n*n size containing all zeroes
+        int[][] grid = new int[n][n];
+        for(int i=0;i<n;i++)
+            for(int j=0;j<n;j++)
+                grid[i][j]=0;
+        return grid;
+    }
+    public static int NumberofUnknowns(int[][] grid){// Returns the number of unfilled cells in the grid
+        int count = 0;
+        for(int i=0;i<GridSize;i++)
+            for(int j=0;j<GridSize;j++)
+                if(grid[i][j]==0)
+                    count++;
+        return count;    
+    }
+    public static boolean checkRow(int[][] grid, int x , int y){//checks the row of the given coordinates for duplicates
+        for(int i=0;i<GridSize;i++){
+            if(grid[x][i]==grid[x][y] && i!=y && grid[x][i] != 0)
+                return false;
+        }
+        return true;
+    }
+    public static int[][][] possibilities(int[][] grid){
+        int [][][]fits = new int[GridSize][GridSize][GridSize];
+        for(int i=0;i<GridSize;i++){
+            for(int j=0;j<GridSize;j++){
+                if(grid[i][j]==0){
+                    for(int k=0;k<GridSize;k++)
+                        fits[i][j][k]=k+1;
+                    int[] arrbox = get1dBox(getBox(grid,i,j));    
+                    for(int k=0;k<GridSize;k++){
+                        for(int l=0;l<GridSize;l++){
+                            if(grid[k][j]==fits[i][j][l] || grid[i][k]==fits[i][j][l] || arrbox[k]==fits[i][j][l]){
+                                fits[i][j][l]=0;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return fits;
+    }
+    public static int NumberofSolutions(int[][] grid,int x, int y){
+        int Number=0;
+        for(int i=0;i<GridSize;i++){
+            if(possibilities(grid)[x][y][i]!=0)Number++;
+        }
+        return Number;
+    }
+    public static boolean checkCol(int[][] grid, int x, int y){//checks the column of the given coordinates for duplicates
+        for(int i=0;i<GridSize;i++){
+            if(grid[i][y]==grid[x][y] && i!=x && grid[i][y] != 0)
+                return false;
+        }
+        return true;
+    }
+    public static int topofBox(int x){// function to return the topmost location of the box containing the input parameter        
+        if(x==0)
+            return 0;
+        return x-(x%(boxsize));        
+    }
+    public static int leftofBox(int y){// function to return the leftmost location of the box containing the input parameter
+        if(y==0)
+            return 0;
+        return y-(y%(boxsize));
+    }
+    public static int charToInt(char x){
+        int num=0;
+        if(x>='0' && x<='9') num = x - '0';
+        else if(x>='a' && x<='z') num = (x-'a')+10;
+        return num;
+    }
+    public static void stringToGrid(String s){
+        GridSize = (int)(Math.sqrt(s.length())+0.999);
+        boxsize = (int)(Math.sqrt(GridSize));
+        grid = new int[GridSize][GridSize];
+        for(int i=0, k=0;i<GridSize;i++)
+            for(int j=0;j<GridSize;j++,k++)
+                grid[i][j]=charToInt(s.charAt(k));
+    }
+    public static int[][] getBox(int [][] grid, int x, int y){//returns the subgrid containing the input coordinates
+        int[][] Box = new int[boxsize][boxsize];
+        for(int i=0;i<boxsize;i++){
+            for(int j=0;j<boxsize;j++){
+                Box[i][j] = grid[i+topofBox(x)][j+leftofBox(y)];
+            }
+        }
+        return Box;
+    }
+    public static int[] get1dBox(int [][] box){//converts the 2d array of the box into a 1d array
+        int arrBox[] = new int[boxsize*boxsize];
+        int k=0;
+        for(int i=0;i<boxsize;i++){
+            for(int j=0;j<boxsize;j++,k++)arrBox[k]=box[i][j];   
+        }
+        return arrBox;
+    }
+    public static boolean checkBox(int[][] grid, int x, int y){//checks the subgrid of the given coordinates for duplicates
+        int arrBox[] = get1dBox(getBox(grid,x,y));
+        for(int i=0;i<GridSize;i++){
+            for(int j=i+1;j<GridSize;j++){
+                if(arrBox[i]==arrBox[j] && arrBox[i]!=0)
+                    return false;
+            }
+        }
+        return true;
+    }
+    public static boolean checkGrid(int[][] grid){
+        for(int i=0;i<GridSize;i++){
+            for(int j=0;j<GridSize;j++){
+                if(!checkRow(grid,i,j) ){
+                    System.out.println("Error row " + i + j);
+                    return false;
+                }    
+                if(!checkCol(grid,i,j)){
+                    System.out.println("Error row " + i + j);
+                    return false;
+                }        
+            }
+        }
+        for(int i=0;i<GridSize;i+=3){
+            for(int j=0;j<GridSize;j+=3){
+                if(!checkBox(grid,i,j))
+                    return false;
+            }
+        }
+        return true;
+    }
+    public static void printGrid( int grid[][]){
+        System.out.print("+");
+        for(int i=0;i<GridSize;i++){
+            System.out.print("---+");
+        }
+        System.out.println();
+        for(int i=0;i<GridSize;i++){
+            System.out.print("|");
+            for(int j=0;j<GridSize;j++){
+                if(grid[i][j]==0)
+                    if(j%boxsize==boxsize-1){
+                        System.out.print("   ");
+                        if(j%boxsize==boxsize-1 && j!=GridSize-1){
+                            System.out.print("#");
+                        }else{System.out.print("+");}
+                    }
+                    else System.out.print("   |");    
+                else{
+                    if(grid[i][j]<10)
+                        System.out.print(" ");
+                    System.out.print(grid[i][j]);
+                    if(j%boxsize==boxsize-1 && j!=GridSize-1)System.out.print(" #");
+                    else System.out.print(" |");   
+                }
+            }
+            System.out.println();
+            System.out.print("+");
+            for(int j=0;j<grid.length;j++){
+                if(i%boxsize==boxsize-1 && i!=GridSize-1){
+                    System.out.print("++++");
+                }else{
+                    if(j%boxsize==boxsize-1 && j!=GridSize-1){System.out.print("---#");
+                    }else{System.out.print("---+");}
+                }
+            }
+            System.out.println();
+        }
+        for(int i=0;i<pointerx;i++)System.out.print("    ");
+        System.out.print("Possibilities of current cell : ");
+        System.out.println("State of Grid : "+checkGrid(grid));
+        System.out.println("Number of Unknowns : "+NumberofUnknowns(grid));
+    }
+    public static void main(String[] args){
+        Scanner in = new Scanner(System.in);
+        int ch,ch2=0;                
+        System.out.print(" Enter the order of the puzzle (4,9,16,25..) : ");
+        System.out.println();
+        ch=in.nextInt();
+        GridSize=ch;
+        boxsize = (int)(Math.sqrt(GridSize));
+        System.out.println("Enter an example number. Enter zero to input your own values :");
+        System.out.print("To enter all the values at once in a 1D string, enter 1");
+        ch2=in.nextInt();
+        if(ch2==0){
+            for(int i=0;i<GridSize;i++){
+                for(int j=0;j<GridSize;j++){
+                    clrscr();
+                    printGrid(grid);
+                    grid[i][j]=in.nextInt();
+                    
+                }
+            }
+        }else{
+            switch(ch){
+                case 4: switch(ch2){
+                            case 1: stringToGrid("0003010442311342");
+                                    break;
+                            case 2: stringToGrid("3040010204032010");
+                                    break;
+                            case 3: stringToGrid("1000000400200300");
+                                    break;
+                            case 4: stringToGrid("2000010200300004");
+                                    break;
+                            default:stringToGrid("0003010442311342");
+                        }
+                        break;
+                case 9: switch(ch2){
+                            case 1: stringToGrid("000701000730090002561000490472318000000509000000467283046000159200030074000105000");
+                                    break;
+                            case 2: stringToGrid("300801002201030604000204000809000106060000050702000409000509000904080705600107003");
+                                    break;
+                            case 3: stringToGrid("000407058007015032004603000000130860000000100000598000890056743720309081005801290");        
+                                    break;
+                            case 5: stringToGrid("000000000000003085001020000000507000004000100090000000500000073002010000000040009");
+                                    break;
+                            default:stringToGrid("000701000730090002561000490472318000000509000000467283046000159200030074000105000");
+                        }
+                        break;
+                case 16:switch(ch2){
+                            case 1: 
+                                    break;
+                            default:
+                        }
+                        break;
+                case 25:switch(ch2){
+                            case 1:
+                                    break;
+                            default:
+                        }
+                        break;
+            }    
+        }
+        clrscr();
+        printGrid(grid);
+        System.out.println("This is the current state of the grid");
+        System.out.println("Enter any number to start solving :");
+        ch=in.nextInt();
+        while(NumberofUnknowns(grid)>0){
+            for(int i=0;i<GridSize;i++){
+                for(int j=0;j<GridSize;j++){
+                    if(NumberofSolutions(grid,i,j)==1){
+                        for(int k=0;k<GridSize;k++){
+                            if(possibilities(grid)[i][j][k]!=0){
+                                grid[i][j]=possibilities(grid)[i][j][k];
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        clrscr();
+        printGrid(grid);           
+    }
+}
