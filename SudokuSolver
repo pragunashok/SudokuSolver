@@ -12,11 +12,20 @@ public class SudokuSolver
 {
     public static int GridSize=9;
     public static int boxsize = (int)(Math.sqrt(GridSize));
-    public static int pointerx = 0, pointery = 0;
+    public static boolean[][] changeable = new boolean[GridSize][GridSize];
     public static int[][] grid = emptyGrid(9);
     public static void clrscr()// Function to clear screen
     {
         System.out.print('\u000C');
+    }
+    
+    public static void setChanges(){ // sets the values of the changeable array, which prevents the player from changing the original numbers
+        for(int i=0;i<GridSize;i++){
+            for(int j=0;j<GridSize;j++){
+                if(grid[i][j]==0)changeable[i][j]=true;
+                else changeable[i][j]=false;
+            }
+        }
     }
     public static int[][] emptyGrid(int n){ // Returns a 2d array of n*n size containing all zeroes
         int[][] grid = new int[n][n];
@@ -40,6 +49,26 @@ public class SudokuSolver
         }
         return true;
     }
+    public static int[][] get2dposs(int[][][]possibilities){
+        int[][] poss2d = new int[NumberofUnknowns(grid)][GridSize];
+        for(int i=0,k=0;i<GridSize;i++){
+            for(int j=0;j<GridSize;j++){
+                if(possibilities[i][j][0]!=0){
+                    poss2d[k]=possibilities[i][j];
+                    k++;
+                }
+                
+            }
+        }
+        for(int i=0;i<poss2d.length;i++){
+            for(int j=0;j<poss2d[i].length;j++){
+                if(poss2d[i][j]==0){
+                    poss2d[i]=Arrays.copyOf(poss2d[i],j);
+                }
+            }
+        }
+        return poss2d;
+    }
     public static int[][][] possibilities(int[][] grid){
         int [][][]fits = new int[GridSize][GridSize][GridSize];
         for(int i=0;i<GridSize;i++){
@@ -58,7 +87,18 @@ public class SudokuSolver
                 }
             }
         }
-        return fits;
+        int [][][]fitsnew = new int[GridSize][GridSize][GridSize];
+        for(int i=0;i<GridSize;i++){
+            for(int j=0;j<GridSize;j++){
+                for(int k=0,l=0;k<GridSize;k++){
+                    if(fits[i][j][k]!=0){
+                        fitsnew[i][j][l]=fits[i][j][k];
+                        l++;
+                    }
+                }
+            }
+        }
+        return fitsnew;
     }
     public static int NumberofSolutions(int[][] grid,int x, int y){
         int Number=0;
@@ -183,12 +223,99 @@ public class SudokuSolver
             }
             System.out.println();
         }
-        for(int i=0;i<pointerx;i++)System.out.print("    ");
-        System.out.print("Possibilities of current cell : ");
+        
+        
         System.out.println("State of Grid : "+checkGrid(grid));
         System.out.println("Number of Unknowns : "+NumberofUnknowns(grid));
     }
+    public static int[][] SolveByElimination(int[][] grid){
+        for(int l=0;l<NumberofUnknowns(grid);l++){
+            int prev = NumberofUnknowns(grid);
+            for(int i=0;i<GridSize;i++){
+                for(int j=0;j<GridSize;j++){
+                    if(NumberofSolutions(grid,i,j)==1){
+                        for(int k=0;k<GridSize;k++){
+                            if(possibilities(grid)[i][j][k]!=0){
+                                grid[i][j]=possibilities(grid)[i][j][k];
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            if(NumberofUnknowns(grid)==0 || NumberofUnknowns(grid)==prev)break;
+        }
+        
+        return grid;
+    }
+    public static int[] increment(int[] Guess,int[][] poss2d){
+        int pos=0;
+        
+        for(int i=0;i<poss2d[0].length;i++){
+            if(Guess[0]==poss2d[0][i]){
+                pos=i;
+                break;
+            }
+        }
+        if(pos!=poss2d[0].length-1){
+            Guess[0]=poss2d[0][pos+1];
+        }else{
+            int[] subarr = new int[Guess.length-1];
+            Guess[0]=poss2d[0][0];
+            for(int i=1;i<Guess.length-1;i++){
+                Guess[i]=subarr[i-1];
+            }
+        }
+        
+        
+        return Guess;
+    }
+    public static void BruteForceSolution(int[][] grid){
+        int[] Guess = new int[NumberofUnknowns(grid)];
+        int[][] gridcopy = grid;
+        int[][] poss2d = get2dposs(possibilities(grid));
+        for(int i=0;i<Guess.length;i++){
+            Guess[i]=poss2d[i][0];
+        }
+        while(!checkGrid(gridcopy)){
+            for(int i=0,k=0;i<GridSize;i++){
+                for(int j=0;j<GridSize;j++){
+                    if(grid[i][j]==0){
+                        gridcopy[i][j]=Guess[k];
+                        k++;
+                    }
+                }
+            }
+            clrscr();
+            printGrid(gridcopy);
+            if(checkGrid(grid)){
+                grid=gridcopy;
+                return;
+            }else{
+                Guess = increment(Guess,poss2d);
+            }
+        }
+    }
+    
+    public static int[][] SlowBruteForceSolution(int[][] grid){
+        int[] Guess = new int[NumberofUnknowns(grid)];
+        for(int i=0;i<NumberofUnknowns(grid);i++){
+            Guess[i]=1;
+        }
+        
+        int pointer=0;
+        while(true){
+            if(Guess[pointer]==GridSize){
+                Guess[pointer]=1;
+            }else Guess[pointer]++;
+            
+            
+            if(false)break;
+        }
+        return grid;
+    }
     public static void main(String[] args){
+        clrscr();
         Scanner in = new Scanner(System.in);
         int ch,ch2=0;                
         System.out.print(" Enter the order of the puzzle (4,9,16,25..) : ");
@@ -235,9 +362,12 @@ public class SudokuSolver
                         }
                         break;
                 case 16:switch(ch2){
-                            case 1: 
+                            case 1: stringToGrid("b20630090f1ae080008000cbd03962f0147900608c02d3ab30f0080a076eg149a0006b080d0f490c0c90004e0g7b5ad6070b90g00000100800gdc5a098000702901200e506a004004003000c0501200ed8e7b63042000g5150c0400270bg060370a4e0f600d0080g65b1d08703009fea090fgc00a10005000e0g1a5060087b24");
                                     break;
-                            default:
+                            case 2: stringToGrid("007605000001f00805a0006100839c0090e4a30b0c00670g8030000f0607500a0890004000c000010000370d400006000f43e8000a06050b005g0000ed100000agd10b56c07049f03905007e08000210f480c20g1009deb0b2ce100005af70g00e0d003890000072100a00b0f0008g0e50b02f0080000ad0c00800006g000000");
+                                    break;
+                            default:stringToGrid("b20630090f1ae080008000cbd03962f0147900608c02d3ab30f0080a076eg149a0006b080d0f490c0c90004e0g7b5ad6070b90g00000100800gdc5a098000702901200e506a004004003000c0501200ed8e7b63042000g5150c0400270bg060370a4e0f600d0080g65b1d08703009fea090fgc00a10005000e0g1a5060087b24");
+                            
                         }
                         break;
                 case 25:switch(ch2){
@@ -248,26 +378,20 @@ public class SudokuSolver
                         break;
             }    
         }
+        setChanges();
         clrscr();
         printGrid(grid);
         System.out.println("This is the current state of the grid");
         System.out.println("Enter any number to start solving :");
         ch=in.nextInt();
-        while(NumberofUnknowns(grid)>0){
-            for(int i=0;i<GridSize;i++){
-                for(int j=0;j<GridSize;j++){
-                    if(NumberofSolutions(grid,i,j)==1){
-                        for(int k=0;k<GridSize;k++){
-                            if(possibilities(grid)[i][j][k]!=0){
-                                grid[i][j]=possibilities(grid)[i][j][k];
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        
+        //grid = SolveByElimination(grid);
+        BruteForceSolution(grid);
         clrscr();
-        printGrid(grid);           
+        printGrid(grid);
+        
+        if(NumberofUnknowns(grid)>0)System.out.println("The puzzle is too hard");
+        else System.out.println("Puzzle Solved Successfully");
+                 
     }
 }
